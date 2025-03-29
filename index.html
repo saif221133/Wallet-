@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallet Balance Checker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .centered-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .wallet-card {
+            background-color: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="centered-container flex-col">
+        <h1 class="text-4xl font-semibold text-blue-600 mb-6">Seed Phrase Wallet Checker</h1>
+        <button onclick="generateAndCheckWallets()" class="button">Generate & Check Wallets</button>
+        
+        <div id="results" class="mt-8">
+            <!-- Result Information will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Seed Phrase World List (Add more seed phrases if needed)
+        const seedPhraseList = [
+            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent",
+            "legal winner thank year wave sausage worth useful legal winner thank yellow",
+            "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo"
+            // Add more phrases as needed
+        ];
+
+        async function generateAndCheckWallets() {
+            let scannedWallets = 0;
+            let walletsWithBalance = 0;
+            let resultHTML = '';
+            document.getElementById('results').innerHTML = `<p class="text-lg text-gray-500">Scanning wallets...</p>`;
+            
+            // Infura Provider - Replace with your actual Infura API key
+            let provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/6ff1151e40ca4fb1986c365c6f92d54e");
+
+            // ERC-20 Token Contract ABI (standard ERC-20)
+            const erc20Abi = [
+                "function balanceOf(address owner) view returns (uint256)"
+            ];
+
+            // Loop through each Seed Phrase
+            for (let i = 0; i < seedPhraseList.length; i++) {
+                scannedWallets++;
+
+                let wallet = ethers.Wallet.fromMnemonic(seedPhraseList[i]);
+                let ethBalance = await provider.getBalance(wallet.address);
+                let ethBalanceInEth = ethers.utils.formatEther(ethBalance);
+
+                // Example: Check balance of a specific ERC-20 token (USDT, for example)
+                const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT Token Contract Address
+                const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, provider);
+                let tokenBalance = await tokenContract.balanceOf(wallet.address);
+                let tokenBalanceInEth = ethers.utils.formatUnits(tokenBalance, 6); // USDT has 6 decimals
+
+                // Display the wallet address and its ETH and ERC-20 token balance
+                resultHTML += `
+                    <div class="wallet-card">
+                        <p><strong class="text-blue-600">Wallet Address:</strong> ${wallet.address}</p>
+                        <p><strong class="text-blue-600">Seed Phrase:</strong> ${seedPhraseList[i]}</p>
+                        <p><strong class="text-blue-600">ETH Balance:</strong> ${parseFloat(ethBalanceInEth) > 0 ? ethBalanceInEth : "0"} ETH</p>
+                        <p><strong class="text-blue-600">USDT Balance:</strong> ${parseFloat(tokenBalanceInEth) > 0 ? tokenBalanceInEth : "0"} USDT</p>
+                    </div>
+                `;
+
+                if (parseFloat(ethBalanceInEth) > 0 || parseFloat(tokenBalanceInEth) > 0) {
+                    walletsWithBalance++;
+                }
+            }
+
+            // Display the result: number of scanned wallets and those with balance
+            document.getElementById('results').innerHTML = `
+                <div class="wallet-card">
+                    <p class="text-lg">Scanned Wallets: ${scannedWallets}</p>
+                    <p class="text-lg">Wallets with Balance: ${walletsWithBalance}</p>
+                </div>
+                ${resultHTML || '<p class="text-lg text-gray-500">No wallets with balance found!</p>'}
+            `;
+        }
+    </script>
+
+</body>
+  </html>
+  
