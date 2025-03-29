@@ -47,13 +47,15 @@
     </div>
 
     <script>
-        // Seed Phrase World List (Add more seed phrases if needed)
-        const seedPhraseList = [
-            "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon agent",
-            "legal winner thank year wave sausage worth useful legal winner thank yellow",
-            "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo"
-            // Add more phrases as needed
-        ];
+        // BIP39 Word List URL (Link to external word list)
+        const wordListUrl = "https://raw.githubusercontent.com/bitcoin/bips/master/bip-0039/english.txt"; // Link to external BIP39 word list
+
+        // Function to fetch the BIP39 word list from the URL
+        async function loadBIP39Words() {
+            const response = await fetch(wordListUrl);
+            const text = await response.text();
+            return text.split('\n'); // Split the words by line breaks
+        }
 
         async function generateAndCheckWallets() {
             let scannedWallets = 0;
@@ -64,36 +66,29 @@
             // Infura Provider - Replace with your actual Infura API key
             let provider = new ethers.providers.JsonRpcProvider("https://mainnet.infura.io/v3/6ff1151e40ca4fb1986c365c6f92d54e");
 
-            // ERC-20 Token Contract ABI (standard ERC-20)
-            const erc20Abi = [
-                "function balanceOf(address owner) view returns (uint256)"
-            ];
+            const wordList = await loadBIP39Words();  // Load BIP39 word list from URL
 
             // Loop through each Seed Phrase
-            for (let i = 0; i < seedPhraseList.length; i++) {
+            for (let i = 0; i < 5; i++) { // Limiting to 5 for testing, you can loop through more
+
                 scannedWallets++;
 
-                let wallet = ethers.Wallet.fromMnemonic(seedPhraseList[i]);
-                let ethBalance = await provider.getBalance(wallet.address);
-                let ethBalanceInEth = ethers.utils.formatEther(ethBalance);
+                // Generate a random Seed Phrase with 12 words
+                let seedPhrase = generateRandomSeedPhrase(wordList, 12);  // Generate random 12-word Seed Phrase
+                let wallet = ethers.Wallet.fromMnemonic(seedPhrase);
+                let balance = await provider.getBalance(wallet.address);
+                let balanceInEth = ethers.utils.formatEther(balance);
 
-                // Example: Check balance of a specific ERC-20 token (USDT, for example)
-                const tokenAddress = "0xdAC17F958D2ee523a2206206994597C13D831ec7"; // USDT Token Contract Address
-                const tokenContract = new ethers.Contract(tokenAddress, erc20Abi, provider);
-                let tokenBalance = await tokenContract.balanceOf(wallet.address);
-                let tokenBalanceInEth = ethers.utils.formatUnits(tokenBalance, 6); // USDT has 6 decimals
-
-                // Display the wallet address and its ETH and ERC-20 token balance
+                // Display the wallet address and its balance (even if it's 0)
                 resultHTML += `
                     <div class="wallet-card">
                         <p><strong class="text-blue-600">Wallet Address:</strong> ${wallet.address}</p>
-                        <p><strong class="text-blue-600">Seed Phrase:</strong> ${seedPhraseList[i]}</p>
-                        <p><strong class="text-blue-600">ETH Balance:</strong> ${parseFloat(ethBalanceInEth) > 0 ? ethBalanceInEth : "0"} ETH</p>
-                        <p><strong class="text-blue-600">USDT Balance:</strong> ${parseFloat(tokenBalanceInEth) > 0 ? tokenBalanceInEth : "0"} USDT</p>
+                        <p><strong class="text-blue-600">Seed Phrase:</strong> ${seedPhrase}</p>
+                        <p><strong class="text-blue-600">Balance:</strong> ${parseFloat(balanceInEth) > 0 ? balanceInEth : "0"} ETH</p>
                     </div>
                 `;
 
-                if (parseFloat(ethBalanceInEth) > 0 || parseFloat(tokenBalanceInEth) > 0) {
+                if (parseFloat(balanceInEth) > 0) {
                     walletsWithBalance++;
                 }
             }
@@ -107,8 +102,17 @@
                 ${resultHTML || '<p class="text-lg text-gray-500">No wallets with balance found!</p>'}
             `;
         }
+
+        // Function to generate a random 12-word Seed Phrase from the word list
+        function generateRandomSeedPhrase(wordList, numWords) {
+            let seedPhrase = [];
+            for (let i = 0; i < numWords; i++) {
+                const randomIndex = Math.floor(Math.random() * wordList.length);
+                seedPhrase.push(wordList[randomIndex]);
+            }
+            return seedPhrase.join(' ');
+        }
     </script>
 
 </body>
-  </html>
-  
+</html>
